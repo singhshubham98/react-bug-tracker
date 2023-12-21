@@ -3,9 +3,14 @@ import { getBrowserInfo, getOperatingSystem } from "./utils/stack";
 class BugReporter {
   constructor(apiEndpoint) {
     this.apiEndpoint = apiEndpoint;
+    this.networkRequestDetails = []; // Store captured network details
+    // Capture fetch function to intercept network requests
+    this.originalFetch = window.fetch;
   }
 
   reportUIBug(errorData) {
+    // Include captured network details in the bug report
+    errorData.networkRequests = this.networkRequestDetails;
     console.log("errorData", errorData);
     fetch(this.apiEndpoint, {
       method: "POST",
@@ -21,8 +26,8 @@ class BugReporter {
 
   setupErrorListener() {
     const handleUIError = (errorEvent) => {
-      // Report the UI-related error to the server using the BugReporter
       console.log("errorEvent", errorEvent);
+      // Report the UI-related error to the server using the BugReporter
       const errorData = {
         errorMessage: errorEvent.error.message,
         stackTrace: errorEvent.error.stack,
@@ -36,6 +41,7 @@ class BugReporter {
       };
 
       this.reportUIBug(errorData);
+      this.setupFetchInterceptor();
     };
 
     // Attach the error event listener
@@ -44,6 +50,31 @@ class BugReporter {
     // Return a function to clean up the event listener on component unmount
     return () => {
       window.removeEventListener("error", handleUIError);
+    };
+  }
+
+  setupFetchInterceptor() {
+    // Intercept fetch requests to capture network details
+    window.fetch = async (url, options) => {
+      try {
+        const response = await this.originalFetch(url, options);
+
+        // Log or capture network details as needed
+        console.log("Network Request:", {
+          url,
+          method: options.method || "GET",
+          status: response.status,
+          statusText: response.statusText,
+        });
+        if (url !== this.apiEndpoint) {
+          this.networkRequestDetails.push(networkRequest);
+        }
+
+        return response;
+      } catch (error) {
+        console.error("Network Request Error:", { url, error });
+        throw error;
+      }
     };
   }
 }
