@@ -2,7 +2,7 @@ A comprehensive bug tracking tool tailored for React, ensuring that no UI bug go
 
 ## Development 🔧
 
-- Install Dependency.
+- Install Dependency
 
 ```sh
 npm install react-bug-tracker
